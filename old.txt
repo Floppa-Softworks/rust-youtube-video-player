@@ -1,0 +1,21 @@
+/*
+fn get_youtube_download_url(url: impl Into<String>) -> String {
+    let output = YoutubeDl::new(url)
+        .socket_timeout("15")
+        .run()
+        .expect("Failed to find video.");
+
+    match output {
+        YoutubeDlOutput::SingleVideo(video) => video
+            .formats
+            .expect("Couldn't get formats")
+            .get(1)
+            .expect("Couldn't find download url")
+            .url
+            .as_ref()
+            .unwrap()
+            .to_string(),
+        YoutubeDlOutput::Playlist(_) => panic!("Playlist's are not supported!"),
+    }
+}
+*/
