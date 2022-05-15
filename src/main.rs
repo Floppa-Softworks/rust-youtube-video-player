@@ -1,54 +1,63 @@
-use std::io::{Cursor, Error};
+mod cli;
+
+use clap::Parser;
+use cli::{Args, Subcommands};
+use std::io::{BufReader, Error};
 
 use std::process::{Command, Stdio};
+use std::time::Duration;
 
-use rodio::{OutputStream, Source};
+use rodio::OutputStream;
 
-fn get_youtube_video_reader(video_url: &'static str) -> String {
+fn download_video(video_url: String) -> () {
     let ytdl_args = [
-        "-j",
-        "-q",
-        "--no-simulate",
-        "-f",
-        "webm[abr>0]/bestaudio/best",
-        "-R",
-        "infinite",
-        "--no-playlist",
-        "--ignore-config",
-        video_url,
+        "--extract-audio",
+        "--audio-format",
+        "mp3",
         "-o",
-        "-",
+        "music.mp3",
+        &video_url,
     ];
 
-    let ytdl = Command::new("yt-dlp")
+    let mut command = Command::new("yt-dlp.exe")
         .args(ytdl_args)
         .stdin(Stdio::null())
-        .stderr(Stdio::piped())
-        .stdout(Stdio::piped())
-        .output()
+        .stdout(Stdio::null())
+        .spawn()
         .expect("yt-dlp command failed to start");
 
-    let bytes = String::from_utf8_lossy(&ytdl.stdout).into_owned();
-    String::from(bytes.as_str())
+    command
+        .wait()
+        .expect("Couldn't wait for command to finish.");
+
+    std::thread::sleep(Duration::from_secs_f32(0.5))
 }
 
-fn play_audio(bytes: String) {
+fn play_audio() {
     let (_stream, stream_handle) = OutputStream::try_default().unwrap();
-    let cursor = Cursor::new(String::from(bytes)); // Adds Read and Seek to the bytes via Cursor
-    let source = rodio::Decoder::new(cursor).unwrap(); // Decoder requires it's source to impl both Read and Seek
+    let file = std::fs::File::open("music.mp3").unwrap();
 
-    stream_handle
-        .play_raw(source.convert_samples())
-        .expect("bruh what"); // Plays on a different thread
+    let sink = rodio::Sink::try_new(&stream_handle).unwrap();
+    sink.append(rodio::Decoder::new(BufReader::new(file)).unwrap());
 
-    std::thread::sleep(std::time::Duration::from_secs(5));
+    sink.sleep_until_end();
 }
 
 // command: yt-dlp -j -q --no-simulate -f webm[abr>0]/bestaudio/best -R infinite --no-playlist --ignore-config "https://www.youtube.com/watch?v=P-aFiJ5kjsU" -o -
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
-    let bytes = get_youtube_video_reader("https://www.youtube.com/watch?v=P-aFiJ5kjsU");
-    play_audio(bytes);
+    let args = Args::parse();
+
+    match &args.subcommands {
+        Subcommands::Play { url } => {
+            let video_url = url.to_owned().unwrap();
+            download_video(video_url);
+            play_audio();
+        }
+    }
+
+    //download_video("https://www.youtube.com/watch?v=P-aFiJ5kjsU");
+    //play_audio();
     Ok(())
 }

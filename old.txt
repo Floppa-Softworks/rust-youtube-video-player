@@ -19,3 +19,17 @@ fn get_youtube_download_url(url: impl Into<String>) -> String {
     }
 }
 */
+
+"-j",
+        "-q",
+        "--no-simulate",
+        "-f",
+        "webm[abr>0]/bestaudio/best",
+        "-R",
+        "infinite",
+        "--no-playlist",
+        "--ignore-config",
+        "--extract-audio",
+        video_url,
+        "-o",
+        "-",
